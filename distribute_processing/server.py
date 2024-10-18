@@ -52,7 +52,7 @@ def handle_client(client_socket, addr, image_data, results):
 def start_server(image_path):
     """Initialize the server, manage client connections, and aggregate results."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("192.168.1.11", 8095))  
+    server_socket.bind(("10.26.14.197", 8095))  
     server_socket.listen(4)  # Listening for 4 clients
 
     print("Server is waiting for clients to connect...")
@@ -105,5 +105,5 @@ def display_image_with_detections(image_path, results, output_path):
 
 #================== Example Usage
 if __name__ == "__main__":
-    image_path = "cars_in_Pakila.jpg"  
+    image_path = "image.jpg"  
     aggregated_results = start_server(image_path)
