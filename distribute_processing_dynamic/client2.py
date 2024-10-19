@@ -29,33 +29,20 @@ def detect_object(image_data, class_ids, model_path='yolov8n.pt'):
     return detections
 
 # Data Reception
-def receive_image_data(client_socket):
-    # First, receive the length of the data (8 bytes)
+def receive_data(client_socket):
     length_bytes = client_socket.recv(8)
     data_length = int.from_bytes(length_bytes, byteorder='big')
     print(f"Client expecting {data_length} bytes of data")
-    
-    # Then, receive the actual image data
     data = b""
     while len(data) < data_length:
         packet = client_socket.recv(4096)
         if not packet:
             break
         data += packet
-    
+
     print(f"Client received {len(data)} bytes")
     
-    return data  # No need to pickle.loads here, image data is already in bytes
-
-def receive_data(client_socket, expected_size):
-    """Helper function to receive the full data based on the expected size."""
-    data = b""
-    while len(data) < expected_size:
-        packet = client_socket.recv(4096)
-        if not packet:
-            raise ConnectionError("Connection lost while receiving data.")
-        data += packet
-    return data
+    return pickle.loads(data)
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -81,23 +68,12 @@ def start_client():
                 if response == "no":
                     break
                 else:
-                    # Receive the length of the assigned objects data
-                    length_bytes = receive_data(client_socket, 8)
-                    assigned_objects_length = int.from_bytes(length_bytes, byteorder='big')
-
-                    # Receive the actual assigned objects data
-                    assigned_objects_data = receive_data(client_socket, assigned_objects_length)
-                    assigned_objects = pickle.loads(assigned_objects_data)
+                    # Receive the actual assigned objects data (already unpickled in receive_data)
+                    assigned_objects = receive_data(client_socket)
                     print(f"Assigned to detect objects: {assigned_objects}")
 
-                    # Receive image data from the server
-                    image_data = receive_image_data(client_socket)
-                    print(f"Client received image data")
-
-                    # Check if image_data is empty or malformed
-                    if not image_data:
-                        print("Received empty image data.")
-                        break
+                    # Receive the actual image data
+                    image_data = receive_data(client_socket)
 
                     # Detect objects of the assigned type(s)
                     object_detections = detect_object(image_data, assigned_objects)
@@ -112,6 +88,7 @@ def start_client():
         print(f"An error occurred: {e}")
     finally:
         client_socket.close()
+
 
 #================== Example Usage
 if __name__ == "__main__":
