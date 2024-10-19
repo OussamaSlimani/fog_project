@@ -15,7 +15,6 @@ COLOR_MAP = {
 }
 
 def broadcast_message_to_clients(message, clients):
-    """Broadcast a message to all clients and collect their responses."""
     available_clients = []
     for client_socket, addr in clients:
         client_socket.sendall(pickle.dumps(message))
@@ -25,12 +24,10 @@ def broadcast_message_to_clients(message, clients):
     return available_clients
 
 def assign_objects_to_clients(available_clients):
-    """Randomly assign object types to available clients."""
     object_ids = list(CLASS_NAMES.keys())
     random.shuffle(object_ids)
     object_assignment = {}
 
-    # Distribute objects among available clients
     for idx, (client_socket, addr) in enumerate(available_clients):
         assigned_objects = object_ids[idx::len(available_clients)]  # Spread objects across clients
         object_assignment[client_socket] = assigned_objects
@@ -44,7 +41,6 @@ def assign_objects_to_clients(available_clients):
         print(f"Assigned {assigned_objects} to client {addr}")
 
     return object_assignment
-
 
 # Image Communication Functions
 def send_image_to_client(client_socket, image_data):
@@ -75,13 +71,8 @@ def handle_client(client_socket, addr, image_data, results, object_assignment):
     """Handle a single client connection and process detection."""
     try:
         assigned_objects = object_assignment[client_socket]
-        # Send the assigned objects to the client
-        assigned_objects_pickle = pickle.dumps(assigned_objects)
-        data_length = len(assigned_objects_pickle)
-        client_socket.sendall(data_length.to_bytes(8, byteorder="big"))
-        client_socket.sendall(assigned_objects_pickle)
 
-        # Now send the image data
+        # Now send the image data after the objects have already been assigned
         send_image_to_client(client_socket, image_data)
 
         # Receive detection results from the client
@@ -101,7 +92,7 @@ def handle_client(client_socket, addr, image_data, results, object_assignment):
 def start_server(image_path):
     """Initialize the server, manage client connections, and aggregate results."""
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("10.26.12.107", 8095))  
+    server_socket.bind(("192.168.1.12", 8095))  
     server_socket.listen(4)  # Listen for up to 4 clients
 
     print("Server is waiting for clients to connect...")

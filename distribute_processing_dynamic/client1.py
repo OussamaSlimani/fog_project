@@ -10,8 +10,16 @@ CLASS_NAMES = {0: "Person", 1: "Bicycle", 2: "Car", 3: "Motorcycle"}
 # Object Detection
 def detect_object(image_data, class_ids, model_path='yolov8n.pt'):
     model = YOLO(model_path)
-    image = Image.open(io.BytesIO(image_data))
+    
+    # Ensure the image data is valid and can be opened
+    try:
+        image = Image.open(io.BytesIO(image_data))
+    except Exception as e:
+        print(f"Error opening image: {e}")
+        return None
+    
     results = model(image)
+    
     # Filter detections by class IDs
     detections = {cls_id: [] for cls_id in class_ids}
     for result in results:
@@ -21,7 +29,6 @@ def detect_object(image_data, class_ids, model_path='yolov8n.pt'):
     return detections
 
 def receive_data(client_socket, expected_size):
-    """Helper function to receive the full data based on the expected size."""
     data = b""
     while len(data) < expected_size:
         packet = client_socket.recv(4096)
@@ -32,7 +39,7 @@ def receive_data(client_socket, expected_size):
 
 def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect(('10.26.12.107', 8095))
+    client_socket.connect(('192.168.1.12', 8095))
     print("Client connected to server")
 
     try:
@@ -70,6 +77,11 @@ def start_client():
                     # Receive the actual image data
                     image_data = receive_data(client_socket, image_data_length)
 
+                    # Check if image_data is empty or malformed
+                    if not image_data:
+                        print("Received empty image data.")
+                        break
+
                     # Detect objects of the assigned type(s)
                     object_detections = detect_object(image_data, assigned_objects)
 
@@ -83,9 +95,6 @@ def start_client():
         print(f"An error occurred: {e}")
     finally:
         client_socket.close()
-
-
-
 
 #================== Example Usage
 if __name__ == "__main__":
